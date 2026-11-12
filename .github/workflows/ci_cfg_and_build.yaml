@@ -1,18 +1,34 @@
+
 name: ci_configure_and_build
 
 on: [push, pull_request]
 
 jobs:
   build:
-    name: Build (Ubuntu) 
+    name: Build (Ubuntu)
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Install Qt 6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            qt6-multimedia-dev \
+            qml6-module-qtquick \
+            qml6-module-qtquick-controls \
+            qml6-module-qtquick-layouts \
+            qml6-module-qtmultimedia
+
       - name: Configure CMake
-        run: cmake -S . -B build -G "Unix Makefiles"
+        run: |
+          cmake -S . -B build \
+            -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel 2
