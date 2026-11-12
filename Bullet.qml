@@ -20,7 +20,7 @@ Item{
 
     Connections{
         target: cell
-        onHpChanged: {
+        function onHpChanged() {
             if (cell.hp === 0) {
                 root.destroy();
             }

@@ -1,189 +1,277 @@
-import QtQuick 2.5
-import QtQuick.Window 2.2
-import QtMultimedia 5.6
-import QtQuick.Controls 1.4
+
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
+import QtQml
+import QtMultimedia
+
 import shape 1.0
-import QtQml 2.2
-import QtQuick.Layouts 1.3
+
 ApplicationWindow {
-
     id: mainWindow
-    visible: true
 
-    width: maximumWidth
-    height: maximumHeight
+    visible: true
+    width: 900
+    height: 800
     color: "black"
-    onActiveFocusItemChanged: print("activeFocusItem", activeFocusItem)
-    Audio {
-        property string audioSource: ""
-        id: audioPlayer
-        source: audioSource
+    title: "Battle City"
+
+    onActiveFocusItemChanged: {
+        console.log("activeFocusItem:", activeFocusItem)
     }
 
-    RowLayout {
+    SoundEffect {
+        id: shootSound
+        source: "qrc:/music/shoot.wav"
+    }
 
-        anchors.fill: parent
+    SoundEffect {
+        id: explosionSound
+        source: "qrc:/music/fexplosion.wav"
+    }
+
+    SoundEffect {
+        id: gameOverSound
+        source: "qrc:/music/gameover.wav"
+    }
+
+    Row {
+        anchors.centerIn: parent
 
         Rectangle {
             id: root
+
             width: 800
             height: 800
-            anchors.centerIn: parent
             color: "gray"
+
             Rectangle {
+                id: scene
+
                 property MyGame gameContainer
                 property Item playerTank
                 property Item aITank
                 property var game
-                property var tmp
 
-                id:scene
                 width: 676
                 height: 676
                 color: "black"
                 anchors.centerIn: parent
-                Component.onCompleted: {
-                    var cmpnt = Qt.createComponent("Game.qml")
-                    if (cmpnt.status === Component.Ready) {
-                        game = cmpnt.createObject(scene);
-                        gameContainer = game.gamedata
-                        console.log(gameContainer.qty)
-                        for (var i = 0; i < game.gamedata.qty ; i++) {
-                            switch (game.gamedata.getItem(i).type) {
-                            case ShapeType.Empty:
-                                break;
-                            case ShapeType.Brick:
-                                game.gamedata.getItem(i).source = "qrc:/img/Brick_quarter.png";
-                                var Brick = Qt.createComponent("Cell.qml");
-                                if (Brick.status === Component.Ready) {
-                                    Brick.createObject(scene,{"cell": game.gamedata.getItem(i)});
-                                }
-                                break;
-                            case ShapeType.Concrete:
-                                game.gamedata.getItem(i).source = "qrc:/img/Сoncrete_quarter.png";
-                                var Сoncrete = Qt.createComponent("Cell.qml");
-                                if (Сoncrete.status === Component.Ready){
-                                    Сoncrete.createObject(scene, {"cell": game.gamedata.getItem(i)});
-                                }
-                                break;
-                            case ShapeType.AiTank:
-                                game.gamedata.getItem(i).source = "qrc:/img/EnemyUp.png";
-                                var aiTank = Qt.createComponent("aiTank.qml");
-                                if (aiTank.status === Component.Ready) {
-                                    aITank = aiTank.createObject(scene, {"cell": game.gamedata.getItem(i)});
-                                }
-                                break;
-                            case ShapeType.PlayerTank:
-                                game.gamedata.getItem(i).source = "qrc:/img/PlayerUp.png";
-                                var userTankCmpnt = Qt.createComponent("UserTank.qml");
-                                if(userTankCmpnt.status === Component.Ready) {
-                                    playerTank = userTankCmpnt.createObject(scene, {"cell": game.gamedata.getItem(i), "game" : game.gamedata});
-                                }
-                                break;
-                            case ShapeType.Base:
-                                game.gamedata.getItem(i).source = "qrc:/img/base.png";
-                                var Base = Qt.createComponent("Base.qml");
-                                if (Base.status === Component.Ready) {
-                                    Base.createObject(scene, {"cell": game.gamedata.getItem(i)});
-                                }
-                                break;
 
-                            }
-                        }
+                function createComponent(fileName, properties) {
+                    const component = Qt.createComponent(fileName)
+
+                    if (component.status !== Component.Ready) {
+                        console.error(
+                            "Failed to load", fileName,
+                            component.errorString()
+                        )
+                        return null
                     }
 
+                    const object = component.createObject(
+                        scene, properties
+                    )
+
+                    if (!object) {
+                        console.error(
+                            "Failed to create", fileName,
+                            component.errorString()
+                        )
+                    }
+
+                    return object
+                }
+
+                Component.onCompleted: {
+                    game = createComponent("Game.qml", {})
+
+                    if (!game) {
+                        return
+                    }
+
+                    gameContainer = game.gamedata
+
+                    for (let i = 0; i < gameContainer.qty; ++i) {
+                        const cell = gameContainer.getItem(i)
+
+                        switch (cell.type) {
+                        case ShapeType.Empty:
+                            break
+
+                        case ShapeType.Brick:
+                            cell.source = "qrc:/img/Brick_quarter.png"
+                            createComponent("Cell.qml", {
+                                "cell": cell
+                            })
+                            break
+
+                        case ShapeType.Concrete:
+                            cell.source = "qrc:/img/Сoncrete_quarter.png"
+                            createComponent("Cell.qml", {
+                                "cell": cell
+                            })
+                            break
+
+                        case ShapeType.AiTank:
+                            cell.source = "qrc:/img/EnemyUp.png"
+
+                            aITank = createComponent("aiTank.qml", {
+                                "cell": cell
+                            })
+                            break
+
+                        case ShapeType.PlayerTank:
+                            cell.source = "qrc:/img/PlayerUp.png"
+
+                            playerTank = createComponent("UserTank.qml", {
+                                "cell": cell,
+                                "game": gameContainer
+                            })
+                            break
+
+                        case ShapeType.Base:
+                            cell.source = "qrc:/img/base.png"
+                            createComponent("Base.qml", {
+                                "cell": cell
+                            })
+                            break
+                        }
+                    }
                 }
 
                 Connections {
                     target: scene.playerTank
-                    onShooted: {
-                        var bullet = scene.gameContainer.shoot(scene.playerTank.cell, 0)
-                        var bulletCmpnt = Qt.createComponent("Bullet.qml");
-                        if(bulletCmpnt.status === Component.Ready){
-                            bulletCmpnt.createObject(scene,{"cell" : bullet})
+
+                    function onShooted() {
+                        const bullet = scene.gameContainer.shoot(
+                            scene.playerTank.cell, 0
+                        )
+
+                        if (bullet) {
+                            scene.createComponent("Bullet.qml", {
+                                "cell": bullet
+                            })
                         }
-                        audioPlayer.audioSource = "./music/shoot.wav";
-                        audioPlayer.play();
+
+                        shootSound.play()
                     }
                 }
+
                 Connections {
                     target: scene.aITank
-                    onShooting: {
-                        var bullet = scene.gameContainer.shoot(scene.aITank.cell, 0)
-                        var bullettCmpnt = Qt.createComponent("Bullet.qml");
-                        if (bullettCmpnt.status === Component.Ready) {
-                            bullettCmpnt.createObject(scene,{"cell": bullet})
+
+                    function onShooting() {
+                        const bullet = scene.gameContainer.shoot(
+                            scene.aITank.cell, 0
+                        )
+
+                        if (bullet) {
+                            scene.createComponent("Bullet.qml", {
+                                "cell": bullet
+                            })
                         }
                     }
                 }
+
                 Connections {
                     target: scene.gameContainer
-                    onCreatePlayer: {
-                        audioPlayer.audioSource = "./music/fexplosion.wav"
-                        var playerTank = scene.gameContainer.createPlayerTank();
-                        playerTank .source = "qrc:/img/PlayerUp.png";
-                        var userTankCmpnt = Qt.createComponent("UserTank.qml");
-                        if (userTankCmpnt.status === Component.Ready) {
-                            scene.playerTank = userTankCmpnt.createObject(scene, {"cell": playerTank, "focus": true});
-                        }
-                    }
-                }
-                Connections {
-                    target: scene.gameContainer
-                    onCreateEnemy: {
-                        var enemyTank= scene.gameContainer.createEnemyTank();
-                        enemyTank.source = "qrc:/img/EnemyUp.png";
-                        var aiTank = Qt.createComponent("aiTank.qml");
-                        if (aiTank.status === Component.Ready) {
-                            scene.aITank = aiTank.createObject(scene, {"cell": enemyTank});
-                        }
+
+                    function onCreatePlayer() {
+                        explosionSound.play()
+
+                        const tank =
+                            scene.gameContainer.createPlayerTank()
+
+                        tank.source = "qrc:/img/PlayerUp.png"
+
+                        scene.playerTank = scene.createComponent(
+                            "UserTank.qml", {
+                                "cell": tank,
+                                "game": scene.gameContainer,
+                                "focus": true
+                            }
+                        )
                     }
 
-                }
-                Connections {
-                    target:scene.gameContainer
-                    onTankOnLevelChanged:{
-                        console.log("tanks left :" + scene.gameContainer.tanksOnLevel);
-                    }
-                }
-                Connections {
-                    target:scene.gameContainer
-                    onGameOver: {
-                        console.log("Game over! bye");
-                        audioPlayer.audioSource = "./music/gameover.mp3";
-                        audioPlayer.play();
+                    function onCreateEnemy() {
+                        const tank =
+                            scene.gameContainer.createEnemyTank()
 
+                        tank.source = "qrc:/img/EnemyUp.png"
+
+                        scene.aITank = scene.createComponent(
+                            "aiTank.qml", {
+                                "cell": tank
+                            }
+                        )
+                    }
+
+                    function onTankOnLevelChanged() {
+                        console.log(
+                            "Tanks left:",
+                            scene.gameContainer.tanksOnLevel
+                        )
+                    }
+
+                    function onGameOver() {
+                        console.log("Game over!")
+                        gameOverSound.play()
                     }
                 }
+
                 Connections {
                     target: scene.playerTank
-                    onUp: {
-                        scene.gameContainer.move(scene.playerTank.cell, Direction.Up);
+
+                    function onMoveUp() {
+                        scene.gameContainer.move(
+                            scene.playerTank.cell, Direction.Up
+                        )
                     }
-                    onRight: {
-                        scene.gameContainer.move(scene.playerTank.cell, Direction.Right);
+
+                    function onMoveRight() {
+                        scene.gameContainer.move(
+                            scene.playerTank.cell, Direction.Right
+                        )
                     }
-                    onDown: {
-                        scene.gameContainer.move(scene.playerTank.cell, Direction.Down);
+
+                    function onMoveDown() {
+                        scene.gameContainer.move(
+                            scene.playerTank.cell, Direction.Down
+                        )
                     }
-                    onLeft: {
-                        scene.gameContainer.move(scene.playerTank.cell, Direction.Left);
+
+                    function onMoveLeft() {
+                        scene.gameContainer.move(
+                            scene.playerTank.cell, Direction.Left
+                        )
                     }
                 }
             }
         }
+
         Rectangle {
-            color: "gray"
-            height: 676
             width: 100
+            height: 800
+            color: "gray"
+
             Rectangle {
                 id: tanksLeft
+
                 width: 100
                 height: 100
-                color:"green"
+                color: "green"
 
                 Text {
-                    text: "Enemy left" + scene.gameContainer.lifes  + "\n" + scene.gameContainer.tanksOnLevel;
+                    anchors.centerIn: parent
+
+                    text: scene.gameContainer
+                          ? "Enemy left: "
+                            + scene.gameContainer.lifes
+                            + "\n"
+                            + scene.gameContainer.tanksOnLevel
+                          : "Loading..."
+
                     font.family: "Helvetica"
                     font.pointSize: 16
                 }
@@ -191,8 +279,3 @@ ApplicationWindow {
         }
     }
 }
-
-
-
-
-

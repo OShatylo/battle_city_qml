@@ -19,7 +19,7 @@ Item {
     }
     Connections {
         target: cell
-        onDirectionChanged:{
+        function onDirectionChanged(){
             if(cell.direction === Direction.Up)
                 img.rotation = 0
             if(cell.direction === Direction.Right) {
@@ -35,17 +35,16 @@ Item {
     }
     Connections {
         target: cell
-        onShooting: {
+        function onShooting() {
             shooting();
         }
     }
     Connections{
         target: cell
-        onHpChanged: {
+        function onHpChanged() {
             if(cell.hp === 0) {
                 root.destroy();
             }
         }
-
     }
 }
