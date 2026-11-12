@@ -1,12 +1,14 @@
 import QtQuick 2.5
 import shape 1.0
+
 FocusScope{
 
-    signal up()
-    signal right()
-    signal down()
-    signal left()
+    signal moveLeft()
+    signal moveRight()
+    signal moveUp()
+    signal moveDown()
     signal shooted()
+    
     property MyObject cell
     property MyGame game
     focus: true
@@ -27,26 +29,38 @@ FocusScope{
         rotation: root.cell.direction * 90
     }
 
-    Keys.onPressed: {
-        if (event.key === Qt.Key_Up) {
-            up();
+    Keys.onPressed: function(event) {
+        switch (event.key) {
+        case Qt.Key_Up:
+            moveUp()
+            break
+
+        case Qt.Key_Right:
+            moveRight()
+            break
+
+        case Qt.Key_Down:
+            moveDown()
+            break
+
+        case Qt.Key_Left:
+            moveLeft()
+            break
+
+        case Qt.Key_Space:
+            shooted()
+            break
+
+        default:
+            return
         }
-        if (event.key === Qt.Key_Right) {
-            right();
-        }
-        if (event.key === Qt.Key_Down) {
-            down();
-        }
-        if (event.key === Qt.Key_Left ) {
-            left();
-        }
-        if (event.key === Qt.Key_Space) {
-            shooted();
-        }
+
+        event.accepted = true
     }
+    
     Connections{
         target: cell
-        onHpChanged: {
+        function onHpChanged() {
             if (cell.hp === 0) {
                 root.destroy();
             }

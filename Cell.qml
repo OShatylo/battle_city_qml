@@ -17,7 +17,7 @@ Item {
     }
     Connections {
         target: cell
-        onTypeChanged: {
+        function onTypeChanged() {
             img.source = "";
             root.destroy();
         }

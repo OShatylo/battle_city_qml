@@ -115,7 +115,7 @@ QList<Shape *> Game::getGameItemsContainer() const
 
 bool Game::isMapLoaded()
 {
-    QFile fl("../Battle_city_qml/levels/level1_tile.txt");
+    QFile fl(":/levels/level1_tile.txt");
     if (!fl.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         return 0;
